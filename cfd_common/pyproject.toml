@@ -1,0 +1,12 @@
+[project]
+name = "cfd-common"
+version = "0.1.0"
+description = "CFD Common / commonly used functions within notebooks"
+authors = [{ name = "cuBerry", email = "joon8454@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
