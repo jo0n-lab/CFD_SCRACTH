@@ -235,10 +235,10 @@ void V_SOLVE()
 			AS[i][j] += fmax(0, fls);
 			AN[i][j] += fmax(0, -fln);
 			
-         VSOR[i][j]=0.;
-         double ac =0.;
-         AP[i][j] = AW[i][j] + AE[i][j] + AS[i][j] + AN[i][j] + ac;
-         VSOR[i][j] -= VOL[i][j] * 0.5 * (PYV[i][j] + PYV[i][j+1]);
+         	VSOR[i][j]=0.;
+         	double ac =0.;
+         	AP[i][j] = AW[i][j] + AE[i][j] + AS[i][j] + AN[i][j] + ac;
+         	VSOR[i][j] -= VOL[i][j] * 0.5 * (PYV[i][j] + PYV[i][j+1]);
 
 		 	if(INC==1)
 				VSOR[i][j] += VOL[i][j] * RHOP[i][j] * GRAVY * BETA * T[i][j];
