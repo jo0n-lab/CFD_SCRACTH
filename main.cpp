@@ -4,7 +4,7 @@
 
 int main()
 {
-	NI = 42, DX0 = 0.1/(NI-2), NJ = 42, DY0 = 0.1/(NJ-2), T0 = 0., P0 = 0., U0 = 0., V0 = 0., P0 = 0.; //NI=82
+	NI = 22, DX0 = 0.1/(NI-2), NJ = 22, DY0 = 0.1/(NJ-2), T0 = 0., P0 = 0., U0 = 0., V0 = 0., P0 = 0.; //NI=82
 	INC=1;
 	IR = 0, JUMP = 100, GRAVY = 9.81, BETA = 1.e-2;
 	K0 = 1.e-2, ROCP0 = 1.e2, QDOT = 0., RHOP0 = 1.e0, VIS0 = 0.71e-4;
@@ -63,6 +63,15 @@ int main()
 	}
 
 	if(INC==0) T_SOLVE();
+
+	FILE *fpT = fopen("out_T", "w");
+	for (int i=1;i<=NI;i++){
+		for (int j=1;j<=NJ;j++){
+			fprintf(fpT,"%15.7e ",T[i][j]);
+		}
+		fprintf(fpT,"\n");
+	}
+	fclose(fpT);
 
 
 	// for(j=1;j<=NJ;j++){
@@ -140,7 +149,25 @@ int main()
 		double fout=SFmin + (SFmax-SFmin)/10.*n;
 		Plot_Contour(fp4, fout, 2, NI, 2, NJ, XU, YV, SF);
 	}
-	fclose(fp3);
+	fclose(fp4);
+
+	FILE *fpU = fopen("out_U", "w");
+	for (int i=1;i<=NI;i++){
+		for (int j=1;j<=NJ;j++){
+			fprintf(fpU,"%15.7e ",U[i][j]);
+		}
+		fprintf(fpU,"\n");
+	}
+	fclose(fpU);
+
+	FILE *fpV = fopen("out_V", "w");
+	for (int i=1;i<=NI;i++){
+		for (int j=1;j<=NJ;j++){
+			fprintf(fpV,"%15.7e ",V[i][j]);
+		}
+		fprintf(fpV,"\n");
+	}
+	fclose(fpV);
 
 	return 0;
 }
