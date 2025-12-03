@@ -1,173 +1,192 @@
-#include <iostream>
-#define COMMON_DEF
-#include "common.h"               
+﻿#include <iostream>
+#define COMMON_DEF 
+#include "common.h"
+
 
 int main()
 {
-	NI = 22, DX0 = 0.1/(NI-2), NJ = 22, DY0 = 0.1/(NJ-2), T0 = 0., P0 = 0., U0 = 0., V0 = 0., P0 = 0.; //NI=82
-	INC=1;
-	IR = 0, JUMP = 100, GRAVY = 9.81, BETA = 1.e-2;
-	K0 = 1.e-2, ROCP0 = 1.e2, QDOT = 0., RHOP0 = 1.e0, VIS0 = 0.71e-4;
-	double Ra = 1.e4, DTemp = Ra / 1.382e4;
-	ITMAX = 2000, ERRMAX = 1.e-5, RELAX = 1., RELAXUV = 0.9, RELAXP = 1.0; RELAXT = 0.9;
-	
+	NI = 42; DX0 = 0.1 / (NI - 2.); NJ = 42; DY0 = 0.1 / (NJ - 2.); U0 = 0.; V0 = 0.; P0 = 0.; T0 = 0.;
+	IR = 0.; JUMP = 100.; GRAVY = 9.81; BETA = 1.e-3;
+	DTIME = 1.; I_NC = 1.; I_STEADY = 0.; LTIME = 200.;		// unsteady
+	K0 = 1.e-2; ROCP0 = 1.e2; QDOT = 0.; RHOP0 = 1.e0; VIS0 = 0.71e-4;
+	K0_S = 10.; ROCP0_S = 1.e6; RHOP0_S = 1.e3; VIS0_S = 10.;
 
-	IBCW = IWAL, TBCW =  0.5 * DTemp, 	QBCW = 0., UBCW = 0., VBCW = 0.,  PBCW = 0.;
-	IBCE = IWAL, TBCE = -0.5 * DTemp, 	QBCE = 0., UBCE = 0., VBCE = 0.,  PBCE = 0.;
-	IBCS = IWQQ, TBCS =  0., 				QBCS = 0., UBCS = 0., VBCS = 0.,  PBCS = 0.;
-	IBCN = IWQQ, TBCN =  0., 				QBCN = 0., UBCN = 0., VBCN = 0.,  PBCN = 0.;
+	ITMAX = 10000.; ERRMAX = 1.e-5; RELAX = 1.; RELAXT = 1.; RELAXUV = 0.8; RELAXP = 1.;
 
-	INIT();
+	double Ra = 1.e4, DT = Ra / 1.382e3;
 
-	printf("DTemp= %10.3e T0= %10.3e Ra= %10.3e TBCW= %10.3e TBCE= %10.3e\n", DTemp, T0, Ra, TBCW, TBCE);
-	printf("%4d %10.2e %10.2e %10.2e %10.2e\n", 0, U[10][10], V[10][10], P[10][10], T[10][10]);
+	IBCW = IWAL; TBCW = 0.5 * DT; QBCW = 0.; UBCW = 0.; VBCW = 0.; PBCW = 0.;
+	IBCE = IWAL; TBCE = -0.5 * DT; QBCE = 0.; UBCE = 0.; VBCE = 0.; PBCE = 0.;
+	IBCS = IWQQ; TBCS = 0.; QBCS = 0.; UBCS = 0.; VBCS = 0.; PBCS = 0.;
+	IBCN = IWQQ; TBCN = 0.; QBCN = 0.; UBCN = 0.; VBCN = 0.; PBCN = 0.;
+	//9-1
 
-	for (int iter = 0; iter <= ITMAX; iter++)
-	{
+	INIT(); //F_Get(0.03, 0.03, 0.01, 0.07, 0.07, 0.01); H_Get(DX0); PROP();
+
+	// 초기 속도 초기화 및 설정
+	//for (i = 2; i < NI; i++) { for (j = 1; j < NJ; j++) { U[i][j] = U0 * XU[i]; } };
+	//for (j = 1; j < NJ; j++) { U[1][j] = 0; V[1][j] = 0; };
+
+	printf(" iter       U           V           P           T         uvsMAX      PSMAX       TSMAX       uvCMAX       PCMAX       TCMAX \n");
+	printf(" %4d %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e  %11.3e %11.3e %11.3e \n\n",
+		0., U[10][10], V[10][10], P[10][10], T[10][10], 0., 0., 0., 0., 0., 0.);
+
+	int last = LTIME;
+	if (I_STEADY == 1) last = ITMAX;
+
+	FILE* fpgnu = _fsopen("plt", "w", _SH_DENYNO);
+	fprintf(fpgnu, " set xr [0:0.1] \n");
+	fprintf(fpgnu, " set yr [0:0.1] \n");
+	fprintf(fpgnu, " set grid \n");
+
+	for (int itime = 0; itime <= last; itime++) {
 		VELMAX = 1.e-20;
-		for (j = 1; j <= NJ; j++)
-		{
-			for (i = 1; i <= NI; i++)
-			{
-				// continuity?
-				BU[i][j] = U[i][j];
-				BV[i][j] = V[i][j];
-				BT[i][j] = T[i][j];
-				VELMAX = fmax(VELMAX, U[i][j]);
-				VELMAX = fmax(VELMAX, V[i][j]);
+
+		for (j = 1; j <= NJ; j++) {
+			for (i = 1; i <= NI; i++) {
+				BU[i][j] = U[i][j]; BV[i][j] = V[i][j]; BT[i][j] = T[i][j];
+				VELMAX = fmax(VELMAX, U[i][j]); VELMAX = fmax(VELMAX, V[i][j]);
+				//UU[i][j] = 0.; VV[i][j] = 0.1 * XP[i];
+				//V[i][j] = 0.1 * XP[i];
 			}
 		}
 
-		if(INC==1) T_SOLVE();
-		U_SOLVE(); V_SOLVE(); P_SOLVE();
+		PXY_GET(); U_SOLVE(); V_SOLVE(); P_SOLVE();
 
-		// ex 4.1 main.cpp
-		double uvsmax=fmax(USMAX,VSMAX);
-		double uvcmax=fmax(UCMAX,VCMAX);
-		SSMAX = fmax(uvsmax, PSMAX);
-		FCMAX = fmax(uvcmax, PCMAX);
+		if (I_NC == 1 || I_STEADY == 0) T_SOLVE();
 
-		SSMAX = fmax(SSMAX, TSMAX);
-		FCMAX = fmax(FCMAX, TCMAX);
+		double uvSMAX = fmax(USMAX, VSMAX); double uvCMAX = fmax(UCMAX, VCMAX);
+		SSMAX = fmax(uvSMAX, PSMAX); FCMAX = fmax(uvCMAX, PCMAX);
+		SSMAX = fmax(SSMAX, TSMAX); FCMAX = fmax(FCMAX, TCMAX);
 
-		if (iter == iter / JUMP * JUMP)
-		{
-			printf("%4d %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e\n", iter, U[10][10], V[10][10], P[10][10], T[10][10] ,uvcmax, PCMAX, TCMAX, uvsmax, PSMAX, TSMAX);
-
+		int jump = 1;
+		if (I_STEADY == 1) jump = JUMP;
+		if (itime == itime / jump * jump) {
+			printf(" iter       U           V           P           T         uvsMAX      PSMAX       TSMAX       uvCMAX       PCMAX       TCMAX \n");
+			printf(" %4d %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e  %11.3e %11.3e %11.3e \n\n",
+				itime, U[10][10], V[10][10], P[10][10], T[10][10], uvSMAX, PSMAX, TSMAX, uvCMAX, PCMAX, TCMAX);
 		}
-		if (iter > 0 && SSMAX < ERRMAX && FCMAX < ERRMAX)
-		{
-			printf("%4d %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e\n", iter, U[10][10], V[10][10], P[10][10], T[10][10] ,uvcmax, PCMAX, TCMAX, uvsmax, PSMAX, TSMAX);
+
+		if (I_STEADY == 1 && itime > 0 && SSMAX < ERRMAX && FCMAX < ERRMAX) {
+			printf(" iter       U           V           P           T         uvsMAX      PSMAX       TSMAX       uvCMAX       PCMAX       TCMAX \n");
+			printf(" %4d %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e  %11.3e %11.3e %11.3e \n\n",
+				itime, U[10][10], V[10][10], P[10][10], T[10][10], uvSMAX, PSMAX, TSMAX, uvCMAX, PCMAX, TCMAX);
 			break;
 		}
-	}
 
-	if(INC==0) T_SOLVE();
+		if (itime == itime / 10 * 10) {
+			char Text[5];
+			char TextS[10] = "Scont"; strcat(TextS, _itoa(itime / 10, Text, 10));
+			char TextT[10] = "Tcont"; strcat(TextT, _itoa(itime / 10, Text, 10));
+			fprintf(fpgnu, " plot \"%s\" w l, \"%s\" w l lt 3\n", TextS, TextT);
+			fprintf(fpgnu, " pause -1 \n");
 
-	FILE *fpT = fopen("out_T", "w");
-	for (int i=1;i<=NI;i++){
-		for (int j=1;j<=NJ;j++){
-			fprintf(fpT,"%15.7e ",T[i][j]);
+			FILE* fpS = _fsopen(TextS, "w", _SH_DENYNO);
+			FILE* fpT = _fsopen(TextT, "w", _SH_DENYNO);
+
+			SF_Get();
+
+			//double theta[IDIM][JDIM];
+
+			double SFmax = -1.e10, SFmin = 1.e10;
+			for (j = 2; j <= NJ; j++) {
+				for (i = 2; i <= NI; i++) {
+					SFmax = fmax(SFmax, SF[i][j]);
+					SFmin = fmin(SFmin, SF[i][j]);
+				}
+			}
+
+			for (i = 1; i <= 19; i++) {
+				double SFout = SFmin + (SFmax - SFmin) / 20. * i;
+				Plot_Contour(fpS, SFout, 2, NI, 2, NJ, XU, YV, SF);
+			}
+
+			for (i = 1; i <= 19; i++) {
+				double Tout = -0.5 * DT + DT / 20. * i;
+				Plot_Contour(fpT, Tout, 1, NI, 1, NJ, XP, YP, T);
+			}
+
+			fclose(fpS); fclose(fpT);
 		}
-		fprintf(fpT,"\n");
 	}
-	fclose(fpT);
 
+	if (I_NC == 0 && I_STEADY == 1) T_SOLVE();
 
-	// for(j=1;j<=NJ;j++){
-	// 	double vrsum=0;
-	// 	double vrTsum=0;
-
-	// 	for(i=2;i<=NIM;i++){
-	// 		vrsum+=V[i][j]*RP[i]*DXP[i];
-	// 		vrTsum+=V[i][j]*RP[i]*DXP[i]*T[i][j];
-	// 	}
-	// 	Tm[j]=vrTsum/vrsum;
-	// }
-
-
-	// FILE *fp1 = fopen("out_x", "w");
-	// for (i = 2; i <= NIM; i++)
-	// {
-	// 	// double Vex = 0.2*(1-XP[i]*XP[i]/XP[NI]/XP[NI]);
-	// 	// Ts=TBCE
-	// 	// double theta = (T[NI][NJM] - T[i][NJM])/(T[NI][NJM] - Tm[NJM]);
-	// 	// double eta = XP[i] / XP[NI];
-	// 	// double thetaex = 4.36 * (3/8. - pow(eta,2)/2 + pow(eta,4)/8);
-	// 	// double Rex = XP[i] / VIS0;
-	// 	double Rex = RHOP0 * U0 * XP[i] / VIS0;
-	// 	double Cfex = 0.664 * pow(Rex, -0.5);
-	// 	// double Nuex = 0.332 * pow(Rex, 0.5);
-	// 	double Nuex = 0.454 * sqrt(Rex);
-	// 	double tau = VIS0 * (U[i][2] - U[i][1]) / DYV[2];
-	// 	double Cf = tau * 2;
-	// 	double q = K0 * (T[i][1] - T[i][2]) / DYV[2];
-	// 	double h = QBCS / (T[i][1] - T0);
-	// 	// double Nu = q * XP[i] / K0;
-	// 	double Nu = h * XP[i] / K0;
-	// 	fprintf(fp1, " %4d %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e\n", i, XP[i], V[i][NJ], Cf, Cfex, Nu, Nuex);
-	// }
-	// fclose(fp1);
-
-	FILE *fp2 = fopen("out_y", "w");
-
-	double qsum = 0;
-	for (j = 2; j <= NJM; j++)
-	{
-		// double h = QBCE / (T[NI][j] - Tm[j]);
-		// double Nu = h * 2 * XU[NI] / K0;
-		
-		// fprintf(fp2, " %4d %15.7e %15.7e %15.7e %15.7e %15.7e\n", j, YP[j], U[NI/2][j], U[NIM][j], T[NI/2][j], T[NIM][j]);
-
-		qsum+=(T[1][j]-T[2][j])/DXU[2]*DYP[j];
-	}
-	double Nu=qsum/DTemp;
 	
+	FILE* fp = _fsopen("out", "w", _SH_DENYNO);
+	FILE* fp2 = _fsopen("out1", "w", _SH_DENYNO);
 
-	SF_GET();
-	double SFmax=-1.e20;
-	double SFmin=1.e20;
-	for(j=2; j<=NJ;j++){
-		for(i=2; i<=NI;i++){
-			SFmax=fmax(SFmax,SF[i][j]);
+	double qsum = 0., Nu = 0.;
+
+	for (j = 2; j <= NJM; j++) {
+		double q = K0 * (T[1][j] - T[2][j]) / DXU[2];
+		qsum += q * DYP[j];
+
+		fprintf(fp2, " %4d %15.7e %15.7e  %15.7e %15.7e  %15.7e\n",
+			j, YP[j], U[NI / 2][j], U[NIM][j], T[NI / 2][j], T[NIM][j]);
+	}
+
+	
+	
+	fclose(fp2);
+
+	Nu = qsum / DT / K0;
+
+	SF_Get();
+
+	//double theta[IDIM][JDIM];
+
+	double SFmax = -1.e10, SFmin = 1.e10;
+	for (j = 2; j <= NJ; j++) {
+		for (i = 2; i <= NI; i++) {
+			SFmax = fmax(SFmax, SF[i][j]);
 			SFmin = fmin(SFmin, SF[i][j]);
 		}
 	}
 
-	printf("NU= %15.7e SFmax= %15.7e SFmin= %15.7e\n",Nu, SFmax,SFmin);
-	fclose(fp2);
+	printf("\n  Nuav = %15.7e  SFmax = %15.7e  SFmin = %15.7e \n", Nu, SFmax, SFmin);
 
-	FILE *fp3 = fopen("cont", "w");
-	for (int n=1;n<10;n++){
-		double Tout=-0.5*DTemp+DTemp/10.*n;
-		Plot_Contour(fp3, Tout, 1, NI, 1, NJ, XP, YP, T);
+	/*
+	for (i = 1; i <= NI; i++) {
+		double Rex = RHOP0 * U0 * XP[i] / VIS0;
+		double tau = VIS0 * (U[i][2] - U[i][1]) / DYV[2];
+		double Cfx = tau * 2. / RHOP0 / U0 / U0;
+		double Cfxex = 0.664 / sqrt(Rex);
+
+		double h = QBCS / (T[i][1] - T0);
+		double Nux = h * XP[i] / K0;
+		double Nuxex = 0.453 * sqrt(Rex);
+
+		fprintf(fp, " %4d	%15.7e	%15.7e	%15.7e	%15.7e	%15.7e	%15.7e\n",
+			i, XP[i], V[i][NJM], Cfx, Cfxex, Nux, Nuxex);
 	}
+
+	printf("file name: %s", NAME_I);
+	printf("            i          XP[i]          V[i][NJM]          Cfx         Cfxex         Nux         Nuxex\n");
+	*/
+	fclose(fp);
+
+
+	// 등온선 contour plot
+	FILE* fp1 = _fsopen("Tcont", "w", _SH_DENYNO);
+	for (i = 1; i <= 19; i++) {
+		double Tout = -0.5 * DT + DT / 20. * i;
+		Plot_Contour(fp1, Tout, 1, NI, 1, NJ, XP, YP, T);
+	}
+
+	fclose(fp1);
+
+	FILE* fp3 = _fsopen("SFcont", "w", _SH_DENYNO);
+	for (i = 1; i <= 19; i++) {
+		double SFout = SFmin + (SFmax - SFmin) / 20. * i;
+		Plot_Contour(fp3, SFout, 2, NI, 2, NJ, XU, YV, SF);
+	}
+
 	fclose(fp3);
 
-	FILE *fp4 = fopen("stream", "w");
-	for (int n=1;n<10;n++){
-		double fout=SFmin + (SFmax-SFmin)/10.*n;
-		Plot_Contour(fp4, fout, 2, NI, 2, NJ, XU, YV, SF);
-	}
+	FILE* fp4 = _fsopen("Fcont", "w", _SH_DENYNO);
+	Plot_Contour(fp4, 0, 1, NI, 1, NJ, XP, YP, F);
 	fclose(fp4);
-
-	FILE *fpU = fopen("out_U", "w");
-	for (int i=1;i<=NI;i++){
-		for (int j=1;j<=NJ;j++){
-			fprintf(fpU,"%15.7e ",U[i][j]);
-		}
-		fprintf(fpU,"\n");
-	}
-	fclose(fpU);
-
-	FILE *fpV = fopen("out_V", "w");
-	for (int i=1;i<=NI;i++){
-		for (int j=1;j<=NJ;j++){
-			fprintf(fpV,"%15.7e ",V[i][j]);
-		}
-		fprintf(fpV,"\n");
-	}
-	fclose(fpV);
-
 	return 0;
 }
+
